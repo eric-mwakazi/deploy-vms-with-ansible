@@ -55,7 +55,7 @@ ssh-copy-id root@PROXMOX_IP
 Edit kube_inventory to define your Proxmox server:
 ```
 [Proxmox-server]
-pve ansible_host=PROXMOX_IP
+PROXMOX_HOSTNAME ansible_host=PROXMOX_IP
 ```
 
 ### 5️⃣ Run the Ansible Playbook
