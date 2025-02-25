@@ -1,0 +1,77 @@
+---
+- name: Start VM {{ node.name }}
+  command: "qm start {{ node.vmid }}"
+  delegate_to: pve
+
+- name: Wait for SSH on default IP (192.168.1.3)
+  wait_for:
+    host: "{{ default_ip }}"
+    port: 22
+    state: started
+    timeout: 180
+  delegate_to: localhost
+
+- name: Configure new network settings
+  ansible.builtin.copy:
+    dest: "/etc/systemd/network/10-ens18.network"
+    content: |
+      [Match]
+      Name=ens18
+      
+      [Network]
+      Address={{ node.ip }}/24
+      Gateway=192.168.1.1
+      DNS=8.8.8.8 8.8.4.4
+  delegate_to: "{{ default_ip }}"
+  become: true
+
+- name: Configure new DNS settings
+  ansible.builtin.copy:
+    dest: "/etc/hosts"
+    content: |
+      127.0.0.1 localhost
+      127.0.1.1 {{ node.name }}
+
+      {% for vm in node_vms %}
+      {{ vm.ip }}  {{ vm.name }}
+      {% endfor %}
+  delegate_to: "{{ default_ip }}"
+  become: true
+
+- name: Set the hostname
+  ansible.builtin.hostname:
+    name: "{{ node.name }}"
+  delegate_to: "{{ default_ip }}"
+  become: true
+
+- name: Gracefully reboot VM to apply new IP
+  ansible.builtin.shell: "nohup shutdown -r now &"
+  delegate_to: "{{ default_ip }}"
+  become: true
+  async: 1
+  poll: 0
+  ignore_errors: true
+
+- name: Wait for VM to shut down completely
+  wait_for:
+    host: "{{ default_ip }}"
+    port: 22
+    state: stopped
+    timeout: 60
+  delegate_to: localhost
+  ignore_errors: true
+
+- name: Wait for SSH on new IP {{ node.ip }}
+  wait_for:
+    host: "{{ node.ip }}"
+    port: 22
+    state: started
+    timeout: 300
+  delegate_to: localhost
+
+- name: Verify SSH on new IP
+  ansible.builtin.shell:
+    cmd: "ssh -o StrictHostKeyChecking=no root@{{ node.ip }} echo 'SSH is working'"
+  delegate_to: localhost
+  register: ssh_check
+  ignore_errors: true
