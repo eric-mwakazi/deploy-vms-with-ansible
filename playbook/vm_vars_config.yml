@@ -1,0 +1,24 @@
+# Edit vm_vars_config.yml inside playbooks directory with your Proxmox API details and VM configurations:
+PROXMOX_API_URL: "https://PROXMOX_IP:8006/api2/json"
+PROXMOX_USER: "your-proxmox-user"
+PROXMOX_PASSWORD: "your-api-token"
+
+# # Change based on your template id and name convention
+TEMPLATE_VMID: 500
+DEFAULT_IP: "192.168.1.3" # Should be your default vm template ip
+
+VM_1_VMID: 805
+VM_1_NAME: "proxy-node1"
+VM_1_IP: "192.168.1.80"
+
+VM_2_VMID: 806
+VM_2_NAME: "master-node1"
+VM_2_IP: "192.168.1.81"
+
+VM_3_VMID: 807
+VM_3_NAME: "worker-node1"
+VM_3_IP: "192.168.1.82"
+
+VM_4_VMID: 808
+VM_4_NAME: "worker-node2"
+VM_4_IP: "192.168.1.83"
