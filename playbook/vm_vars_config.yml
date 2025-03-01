@@ -1,24 +1,40 @@
-# Edit vm_vars_config.yml inside playbooks directory with your Proxmox API details and VM configurations:
-PROXMOX_API_URL: "https://PROXMOX_IP:8006/api2/json"
-PROXMOX_USER: "your-proxmox-user"
-PROXMOX_PASSWORD: "your-api-token"
+PROXMOX_API_URL: "https://192.168.1.2:8006/api2/json"
+PROXMOX_USER: "root@pam!vm-deployer"
+PROXMOX_PASSWORD: "0ce8526a-443a-4634-9913-ed1f0c4a10a3"
 
-# # Change based on your template id and name convention
 TEMPLATE_VMID: 500
-DEFAULT_IP: "192.168.1.3" # Should be your default vm template ip
+DEFAULT_IP: "192.168.1.3"
+
+VM_1_VMID: 705
+VM_1_NAME: "proxy-blue-node1"
+VM_1_IP: "192.168.1.70"
+
+VM_2_VMID: 706
+VM_2_NAME: "master-blue-node1"
+VM_2_IP: "192.168.1.71"
+
+VM_3_VMID: 707
+VM_3_NAME: "worker-blue-node1"
+VM_3_IP: "192.168.1.72"
+
+VM_4_VMID: 708
+VM_4_NAME: "worker-blue-node2"
+VM_4_IP: "192.168.1.73"
 
 VM_1_VMID: 805
-VM_1_NAME: "proxy-node1"
+VM_1_NAME: "proxy-green-node1"
 VM_1_IP: "192.168.1.80"
 
 VM_2_VMID: 806
-VM_2_NAME: "master-node1"
+VM_2_NAME: "master-green-node1"
 VM_2_IP: "192.168.1.81"
 
 VM_3_VMID: 807
-VM_3_NAME: "worker-node1"
+VM_3_NAME: "worker-green-node1"
 VM_3_IP: "192.168.1.82"
 
 VM_4_VMID: 808
-VM_4_NAME: "worker-node2"
+VM_4_NAME: "worker-green-node2"
 VM_4_IP: "192.168.1.83"
+
+

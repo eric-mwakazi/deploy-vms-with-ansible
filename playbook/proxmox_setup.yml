@@ -3,12 +3,24 @@
   tasks:
     - name: Load vars from file
       include_vars:
-        file: vm_config.yml
+        file: vm_vars_config.yml
         name: vm_config
 
-    - name: Debug environment variables
+    - name: Generate node_vms list dynamically
+      set_fact:
+        node_vms: >-
+          {{ node_vms | default([]) + 
+            [ {'vmid': item.value, 
+               'name': vm_config[item.key | regex_replace('_VMID$', '_NAME')], 
+               'ip': vm_config[item.key | regex_replace('_VMID$', '_IP')] 
+             } ]
+          }}
+      loop: "{{ vm_config | dict2items }}"
+      when: item.key is match('VM_\\d+_VMID')
+
+    - name: Debug node_vms list
       debug:
-        var: vm_config
+        var: node_vms
 
 - name: Proxmox VM setup and configuration
   hosts: pve
@@ -19,29 +31,15 @@
     proxmox_password: "{{ hostvars['localhost']['vm_config']['PROXMOX_PASSWORD'] }}"
     template_vmid: "{{ hostvars['localhost']['vm_config']['TEMPLATE_VMID'] }}"
     default_ip: "{{ hostvars['localhost']['vm_config']['DEFAULT_IP'] }}"
-    node_vms:
-      - vmid: "{{ hostvars['localhost']['vm_config']['VM_1_VMID'] }}"
-        name: "{{ hostvars['localhost']['vm_config']['VM_1_NAME'] }}"
-        ip: "{{ hostvars['localhost']['vm_config']['VM_1_IP'] }}"
-      - vmid: "{{ hostvars['localhost']['vm_config']['VM_2_VMID'] }}"
-        name: "{{ hostvars['localhost']['vm_config']['VM_2_NAME'] }}"
-        ip: "{{ hostvars['localhost']['vm_config']['VM_2_IP'] }}"
-      - vmid: "{{ hostvars['localhost']['vm_config']['VM_3_VMID'] }}"
-        name: "{{ hostvars['localhost']['vm_config']['VM_3_NAME'] }}"
-        ip: "{{ hostvars['localhost']['vm_config']['VM_3_IP'] }}"
-      - vmid: "{{ hostvars['localhost']['vm_config']['VM_4_VMID'] }}"
-        name: "{{ hostvars['localhost']['vm_config']['VM_4_NAME'] }}"
-        ip: "{{ hostvars['localhost']['vm_config']['VM_4_IP'] }}"
-
   tasks:
     - name: Clone all VMs from template
       command: >
         qm clone {{ template_vmid }} {{ item.vmid }} --full --name {{ item.name }} --storage local-lvm
-      loop: "{{ node_vms }}"
+      loop: "{{ hostvars['localhost']['node_vms'] }}"
       delegate_to: pve
 
     - name: Start and configure VMs one by one
-      include_tasks: vm_vars_config.yml
-      loop: "{{ node_vms }}"
+      include_tasks: configure_vm.yml
+      loop: "{{ hostvars['localhost']['node_vms'] }}"
       loop_control:
         loop_var: node
