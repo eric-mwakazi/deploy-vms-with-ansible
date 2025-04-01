@@ -1,0 +1,76 @@
+# Set cluster color dynamically for all nodes
+- name: Set cluster color for the node
+  set_fact:
+    cluster_color: >-
+      {%- if 'workers_green' in group_names or 'master_green' in group_names or 'proxy_green' in group_names -%}
+        green
+      {%- elif 'workers_red' in group_names or 'master_red' in group_names or 'proxy_red' in group_names -%}
+        red
+      {%- else -%}
+        undefined
+      {%- endif -%}
+
+# Debug Cluster Color Assignment
+- name: Debug Cluster Color
+  debug:
+    msg: "Cluster color for {{ inventory_hostname }} is {{ cluster_color }}"
+
+# Fail early if cluster color is not determined
+- name: Fail if cluster_color is not correctly set
+  fail:
+    msg: "Could not determine cluster color for {{ inventory_hostname }}. Check group assignments."
+  when: cluster_color == "undefined"
+
+# Generate kubeadm join command on the master node
+- name: Generate kubeadm join command on the master node
+  shell: kubeadm token create --print-join-command
+  register: join_command_raw
+  when: "'masters' in group_names"
+
+# Store the join command as a fact for workers
+- name: Store join command as a fact for workers
+  set_fact:
+    join_command: "{{ hostvars[groups['master_' + cluster_color][0]]['join_command_raw']['stdout'] | trim }}"
+  when: "'workers' in group_names"
+
+# Debug master node selection for worker and proxy nodes
+- name: Debug master node selection
+  debug:
+    msg: "Using master: {{ groups['master_' ~ cluster_color][0] }}"
+  when: "'workers' in group_names"
+
+# Debug join command for workers
+- name: Debug join command on worker nodes
+  debug:
+    msg: "Executing join command: {{ join_command }}"
+  when: "'workers' in group_names"
+
+# Ensure TCP port 6443 on master is reachable from worker nodes
+- name: Ensure TCP port 6443 on master is reachable from worker nodes
+  wait_for:
+    host: "{{ groups['master_' + cluster_color][0] }}"
+    port: 6443
+    timeout: 10
+  when: "'workers' in group_names"
+
+# Reset the node if it was previously initialized
+- name: Reset the node if it was previously initialized
+  shell: kubeadm reset -f && sudo rm -rf /etc/kubernetes /var/lib/etcd /var/lib/kubelet /home/eric/node_joined.log && systemctl restart kubelet
+  args:
+    chdir: /home/{{ kube_user }}
+  when: "'workers' in group_names"
+
+# Skip join command for master nodes
+- name: Skip join command for master nodes
+  debug:
+    msg: "Skipping join command for master node: {{ inventory_hostname }}"
+  when: "'masters' in group_names"
+  tags: skip
+
+# Join the Worker Nodes to the Cluster
+- name: Join all workers to the cluster
+  shell: "{{ join_command }} --ignore-preflight-errors=FileAvailable,Port >> /home/{{ kube_user }}/node_joined.log"
+  args:
+    chdir: /home/{{ kube_user }}
+    creates: node_joined.log
+  when: "'workers' in group_names"

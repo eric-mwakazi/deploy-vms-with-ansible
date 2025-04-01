@@ -1,0 +1,46 @@
+---
+# tasks file for create_and_expose_nginx
+# Delploy a simple Nginx app.
+    - name: Create a deployment.
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"      
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: myapp
+            namespace: "{{ namespace_name }}"
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: nginx
+            template:
+              metadata:
+                labels:
+                  app: nginx
+              spec:
+                containers:
+                  - name: nginx
+                    image: nginx:latest
+                    ports:
+                      - containerPort: 80
+
+    - name: Expose deployment as a service.
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"       
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: nginx-service
+            namespace: "{{ namespace_name }}"
+          spec:
+            selector:
+              app: nginx
+            ports:
+              - protocol: TCP
+                port: 80
+                targetPort: 80
+                nodePort: 30010
+            type: NodePort

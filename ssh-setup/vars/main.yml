@@ -1,0 +1,5 @@
+---
+# vars file for ssh-setup
+user: "eric"
+user_home: "/home/{{ user }}"
+ssh_pub_key_path: "{{ lookup('env', 'HOME') }}/.ssh/id_rsa.pub"

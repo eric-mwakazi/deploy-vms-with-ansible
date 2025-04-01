@@ -1,0 +1,36 @@
+# tasks/main.yml
+- name: Load vars from file
+  include_vars:
+    file: files/vm_vars_config.yml
+    name: vm_config
+
+- name: Load role variables
+  include_vars: vars/main.yml
+
+- name: Generate node_vms list dynamically
+  set_fact:
+    node_vms: >-
+      {{ node_vms | default([]) + 
+        [ {'vmid': item.value, 
+           'name': vm_config[item.key | regex_replace('_VMID$', '_NAME')], 
+           'ip': vm_config[item.key | regex_replace('_VMID$', '_IP')] 
+         } ]
+      }}
+  loop: "{{ vm_config | dict2items }}"
+  when: item.key is match('VM_\\d+_VMID')
+
+- name: Debug node_vms list
+  debug:
+    var: node_vms
+
+- name: Clone all VMs from template
+  command: >
+    qm clone {{ template_vmid }} {{ item.vmid }} --full --name {{ item.name }} --storage local-lvm
+  loop: "{{ node_vms }}"
+  delegate_to: pve
+
+- name: Start and configure VMs one by one
+  include_tasks: files/configure_vm.yml
+  loop: "{{ node_vms }}"
+  loop_control:
+    loop_var: node

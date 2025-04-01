@@ -1,0 +1,5 @@
+---
+# vars file for deploy-k9s-dashboard
+kubeconfig_path: /home/eric/.kube/config
+manifests_path: k8s-manifests
+token_location: /home/eric/k8s_dashboard-token.txt

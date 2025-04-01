@@ -1,0 +1,74 @@
+---
+# task file for vm deployment
+ - name: Deploy VMS
+   hosts: localhost
+   gather_facts: no
+   roles:
+     - deploy-vms
+
+# task file for ssh-setup
+ - name: Copy SSH public key to all hosts
+   hosts: all
+   become: yes
+   gather_facts: no
+   roles:
+    - ssh-setup
+
+# task file for time sync
+ - name: Time synchronization
+   hosts: all
+   gather_facts: no
+   become: yes
+   roles:
+     - time-sync
+
+# task file for Install Kubernetes Dependencies in all master nodes
+ - name: Install Kubernetes Dependencies in all master nodes
+   hosts: masters
+   gather_facts: yes
+   become: yes
+   roles:
+     - install-k8s-dependencies-master
+
+# task file for Install Kubernetes Dependencies in all worker nodes
+ - name: Install Kubernetes Dependencies in all worker nodes
+   hosts: workers
+   gather_facts: yes
+   become: yes
+   roles:
+     - install-k8s-dependencies-workers
+
+# tasks file for Setup Kubernetes Clusters (Green & Blue)
+ - name: Setup Kubernetes Clusters (Green & Blue)
+   hosts: green_environment, red_environment
+   become: yes
+   roles:
+    - cluster-initial
+
+# tasks file for Join all workers to their respective masters(Green & Blue)
+ - name: Join all workers to their respective masters(Green & Blue)
+   hosts: green_environment, red_environment
+   become: yes
+   roles:
+    - node-join
+
+# tasks file for Create namespaces
+ - name: Create namespaces
+   hosts: masters
+   become: yes
+   roles:
+    - create_namespaces
+
+# tasks file for Create_and_expose_nginx
+ - name: Create_and_expose_nginx
+   hosts: masters
+   become: yes
+   roles:
+    - create_and_expose_nginx 
+
+# tasks file for Deploy a kubernetes dashboard.
+ - name: Deploy a kubernetes dashboard.
+   hosts: masters
+   become: yes
+   roles:
+   - deploy-k9s-dashboard

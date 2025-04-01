@@ -1,0 +1,5 @@
+---
+# vars file for create_and_expose_nginx
+kubeconfig_path: /home/eric/.kube/config
+namespace_name: eric
+api_version: v1

@@ -1,2 +1,0 @@
-[Proxmox-server]
-PROXMOX_HOSTNAME ansible_host=PROXMOX_IP

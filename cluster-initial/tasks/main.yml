@@ -1,0 +1,142 @@
+---
+# tasks file for cluster-initial
+# Ensure the .ansible/tmp directory exists with proper permissions
+- name: Ensure the .ansible/tmp directory exists
+  file:
+    path: "/home/{{ kube_user }}/.ansible/tmp"
+    state: directory
+    mode: '0755'
+    owner: "{{ kube_user }}"
+    group: "{{ kube_user }}"
+
+# Determine Cluster Color
+- name: Determine Cluster Color
+  set_fact:
+    cluster_color: '{{ ''green'' if ''master_green'' in group_names else ''red'' }}'
+
+# Check if Kubernetes is already initialized (Move this before using ansible_stat_init)
+- name: Check if Kubernetes is already initialized
+  stat:
+    path: /etc/kubernetes/admin.conf
+  register: ansible_stat_init
+
+# Create an empty file for kubeadm config.
+- name: Create an empty file for kubeadm config.
+  copy:
+    content: ''
+    dest: /etc/kubernetes/kubeadm-config.yaml
+    force: 'no'
+  when: "'master_' + cluster_color in group_names"
+
+# Configure container runtime
+- name: Configure container runtime
+  blockinfile:
+    path: /etc/kubernetes/kubeadm-config.yaml
+    block: |
+      kind: ClusterConfiguration
+      apiVersion: kubeadm.k8s.io/v1beta3
+      networking:
+        podSubnet: "10.244.0.0/16"
+      ---
+      kind: KubeletConfiguration
+      apiVersion: kubelet.config.k8s.io/v1beta1
+      runtimeRequestTimeout: "15m"
+      cgroupDriver: "systemd"
+      systemReserved:
+        cpu: 100m
+        memory: 350M
+      kubeReserved:
+        cpu: 100m
+        memory: 50M
+      enforceNodeAllocatable:
+      - pods
+  when: "'master_' + cluster_color in group_names"
+
+# Ensure the log directory exists
+- name: Ensure the log directory exists
+  file:
+    path: "/home/{{ kube_user }}/{{ inventory_hostname }}_logs"
+    state: directory
+    mode: '0755'
+  when: "'master_' + cluster_color in group_names"
+
+# Initialize the K8S cluster and generate logs
+- name: Initialize the K8S cluster and generate logs
+  shell: >-
+    kubeadm init --config /etc/kubernetes/kubeadm-config.yaml | tee -a /home/{{ kube_user }}/{{ inventory_hostname }}/cluster_initialized.log
+  args:
+    chdir: '/home/{{ kube_user }}'
+  become: true
+  register: kubeadm_init_result
+  failed_when: kubeadm_init_result.rc != 0 and "already initialized" not in kubeadm_init_result.stderr
+  retries: 3
+  delay: 30
+  until: kubeadm_init_result.rc == 0
+  when: "'master_' + cluster_color in group_names and not ansible_stat_init.stat.exists"
+
+# Create .kube directory
+- name: Create .kube directory for user {{ kube_user }}
+  become_user: '{{ kube_user }}'
+  file:
+    path: '/home/{{ kube_user }}/.kube'
+    state: directory
+    mode: '0700'
+
+# Copy admin.conf to user's kube config
+- name: Copy admin.conf to user's kube config
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: '/home/{{ kube_user }}/.kube/config'
+    owner: '{{ kube_user }}'
+    mode: '0700'
+    remote_src: 'yes'
+  when: "'master_' + cluster_color in group_names"
+
+# Install a flannel pod network
+- name: Install a flannel pod network
+  become_user: '{{ kube_user }}'
+  shell: >-
+    kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+  args:
+    chdir: '/home/{{ kube_user }}'
+  when: "'master_' + cluster_color in group_names"
+
+# Fetch admin.conf from master and distribute to all nodes
+- name: Fetch admin.conf from master
+  fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: '/tmp/admin-{{ cluster_color }}.conf'
+    flat: 'yes'
+  when: "'master_' + cluster_color in group_names"
+
+- name: Copy admin.conf to worker and proxy nodes
+  copy:
+    src: '/tmp/admin-{{ cluster_color }}.conf'
+    dest: '/home/{{ kube_user }}/.kube/config'
+    owner: '{{ kube_user }}'
+    mode: '0700'
+  when: "'workers_' + cluster_color in group_names or 'proxy_' + cluster_color in group_names"
+
+# Set KUBECONFIG for user
+- name: Set KUBECONFIG environment variable for user {{ kube_user }}
+  lineinfile:
+    path: '/home/{{ kube_user }}/.bashrc'
+    line: 'export KUBECONFIG=/home/{{ kube_user }}/.kube/config'
+    create: 'yes'
+
+- name: Apply KUBECONFIG for user {{ kube_user }}
+  shell: 'source /home/{{ kube_user }}/.bashrc'
+  args:
+    executable: /bin/bash
+
+# Set KUBECONFIG for root user persistently
+- name: Set KUBECONFIG for root user
+  lineinfile:
+    path: /root/.bashrc
+    line: 'export KUBECONFIG=/etc/kubernetes/admin.conf'
+    create: 'yes'
+
+- name: Apply KUBECONFIG for root user
+  shell: '. /root/.bashrc'
+  args:
+    executable: /bin/bash

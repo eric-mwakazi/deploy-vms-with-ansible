@@ -1,0 +1,9 @@
+---
+# vars file for deploy-vms
+# vars/main.yml (Define static variables)
+proxmox_api_url: "{{ vm_config.PROXMOX_API_URL }}"
+proxmox_user: "{{ vm_config.PROXMOX_USER }}"
+proxmox_password: "{{ vm_config.PROXMOX_PASSWORD }}"
+template_vmid: "{{ vm_config.TEMPLATE_VMID }}"
+default_ip: "{{ vm_config.DEFAULT_IP }}"
+

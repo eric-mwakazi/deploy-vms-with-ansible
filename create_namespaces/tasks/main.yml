@@ -1,0 +1,24 @@
+---
+# tasks file for create_namespaces
+- name: Ensure pip is installed
+  apt:
+    name: python3-pip
+    state: present
+  become: true
+
+- name: Install pre-requisites
+  pip:
+    name:
+      - openshift
+      - pyyaml
+      - kubernetes
+
+- name: Ensure Kubernetes namespace exists
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    name: "{{ namespace_name }}"
+    api_version: "{{api_version }}"
+    kind: Namespace
+    state: present
+  environment:
+    KUBECONFIG: "{{ kubeconfig_path }}"

@@ -1,0 +1,24 @@
+---
+# tasks file for ssh-setup
+- name: Ensure .ssh directory exists
+  file:
+    path: "{{ user_home }}/.ssh"
+    state: directory
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: '0700'
+
+- name: Ensure authorized_keys file exists
+  file:
+    path: "{{ user_home }}/.ssh/authorized_keys"
+    state: touch
+    owner: "{{ user }}"
+    group: "{{ user }}"
+    mode: '0600'
+
+- name: Add public key to authorized_keys if not present
+  authorized_key:
+    user: "{{ user }}"
+    state: present
+    key: "{{ lookup('file', ssh_pub_key_path) }}"
+

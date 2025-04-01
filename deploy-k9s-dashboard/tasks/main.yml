@@ -1,0 +1,47 @@
+---
+# tasks file for deploy-k9s-dashboard
+- name: Install pip3
+  apt:
+    name: python3-pip
+    state: present
+
+- name: Install pre-requisites
+  pip:
+    name:
+      - openshift
+      - pyyaml
+      - kubernetes
+
+- name: Apply kubernetes dashboard manifests.
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    definition: "{{ lookup('file', manifests_path ~ '/recommended.yaml')}}"
+    state: present
+- name: Apply dashboard admin panel manifest.
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    definition: "{{ lookup('file', manifests_path ~ '/dashboard-admin.yaml') }}"
+    state: present
+- name: Apply dashboard admin ClusterRoleBinding manifest
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    definition: "{{ lookup('file', manifests_path ~ '/dashboard-admin-bind-cluster-role.yaml') }}"
+    state: present
+
+- name: Apply metrics components manifest.
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    definition: "{{ lookup('file', manifests_path ~ '/components.yaml') }}"
+    state: present
+- name: Create a bearer koken for the admin-user.
+  command: >-
+    kubectl --kubeconfig "{{ kubeconfig_path }}" -n kubernetes-dashboard create
+    token admin-user
+  register: token_output
+- name: Write bearer token to a file.
+  copy:
+    content: '{{ token_output.stdout }}'
+    dest: '{{ token_location }}'
+- name: Show the bearer token.
+  debug:
+    msg: Bearer Token written to '{{ token_location }}'

@@ -1,0 +1,12 @@
+---
+# tasks file for sync-time
+- name: Ensure NTP package is installed
+  package:
+    name: ntp
+    state: present
+
+- name: Configure NTP servers
+  template:
+    src: files/ntp.conf.j2
+    dest: /etc/ntp.conf
+  notify: Restart NTP

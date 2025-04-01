@@ -1,0 +1,40 @@
+PROXMOX_API_URL: "https://192.168.1.2:8006/api2/json"
+PROXMOX_USER: "root@pam!vm-deployer"
+PROXMOX_PASSWORD: "0ce8526a-443a-4634-9913-ed1f0c4a10a3"
+
+TEMPLATE_VMID: 500
+DEFAULT_IP: "192.168.1.3"
+
+VM_1_VMID: 801
+VM_1_NAME: "proxy-red-node1"
+VM_1_IP: "192.168.1.74"
+
+VM_2_VMID: 802
+VM_2_NAME: "master-red-node1"
+VM_2_IP: "192.168.1.75"
+
+VM_3_VMID: 803
+VM_3_NAME: "worker-red-node1"
+VM_3_IP: "192.168.1.76"
+
+VM_4_VMID: 804
+VM_4_NAME: "worker-red-node2"
+VM_4_IP: "192.168.1.77"
+
+VM_5_VMID: 805
+VM_5_NAME: "proxy-green-node1"
+VM_5_IP: "192.168.1.70"
+
+VM_6_VMID: 806
+VM_6_NAME: "master-green-node1"
+VM_6_IP: "192.168.1.71"
+
+VM_7_VMID: 807
+VM_7_NAME: "worker-green-node1"
+VM_7_IP: "192.168.1.72"
+
+VM_8_VMID: 808
+VM_8_NAME: "worker-green-node2"
+VM_8_IP: "192.168.1.73"
+
+
